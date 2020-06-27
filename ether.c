@@ -14,10 +14,10 @@ char *my_ether_ntoa_r(u_int8_t *hwaddr, char *buf) {
     return buf;
 }
 
-void print_ehter_header(struct ether_header *eh) {
+void print_ether_header(struct ether_header *eh) {
     char buf1[80];
-    printf("---ehter-header---\n");
-    printf("ehter_dhost=%s\n", my_ether_ntoa_r(eh->ether_dhost, buf1));
+    printf("---ether-header---\n");
+    printf("ether_dhost=%s\n", my_ether_ntoa_r(eh->ether_dhost, buf1));
     printf("ether_shost=%s\n", my_ether_ntoa_r(eh->ether_shost, buf1));
     printf("ether_type=%02X", ntohs(eh->ether_type));
     switch (ntohs(eh->ether_type)) {

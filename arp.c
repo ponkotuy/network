@@ -27,7 +27,7 @@ char *my_arp_ip_ntoa_r(u_int8_t ip[4], char *buf) {
     return buf;
 }
 
-void print_ehter_arp(struct ether_arp *arp) {
+void print_ether_arp(struct ether_arp *arp) {
     static char *hrd[] = {
             "From KA9Q: NET/ROM pseudo.",
             "Ethernet 10/100Mbps.",
@@ -174,8 +174,8 @@ int ArpRecv(int soc, struct ether_header *eh, u_int8_t *data, int len) {
         addr.s_addr = (arp->arp_tpa[3] << 24) | (arp->arp_tpa[2] << 16) | (arp->arp_tpa[1] << 8) | (arp->arp_tpa[0]);
         if(isTargetIPAddr(&addr)) {
             printf("--- recv ---[\n");
-            print_ehter_header(eh);
-            print_ehter_arp(arp);
+            print_ether_header(eh);
+            print_ether_arp(arp);
             printf("]\n");
             addr.s_addr =
                     (arp->arp_spa[3] << 24) | (arp->arp_spa[2] << 16) | (arp->arp_spa[1] << 8) | (arp->arp_spa[0]);
