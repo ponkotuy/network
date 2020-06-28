@@ -155,9 +155,71 @@ int ArcDelTable(struct in_addr *ipaddr) {
         if(memcmp(ArpTable[i].mac, AllZeroMac, 6) != 0) {
             if(ArpTable[i].ipaddr.s_addr == ipaddr->s_addr) {
                 memcpy(ArpTable[i].mac, AllZeroMac, 6);
+                ArpTable[i].ipaddr.s_addr = 0;
+                ArpTable[i].timestamp = 0;
+                pthread_rwlock_unlock(&ArpTableLock);
+                return 1;
             }
         }
     }
+    pthread_rwlock_unlock(&ArpTableLock);
+    return 0;
+}
+
+int ArpSearchTable(struct in_addr *ipaddr, u_int8_t mac[6]) {
+    int i;
+    pthread_rwlock_rdlock(&ArpTableLock);
+    for(i = 0; i < ARP_TABLE_NO; ++i) {
+        if(memcmp(ArpTable[i].mac, AllZeroMac, 6) != 0) {
+            if(ArpTable[i].ipaddr.s_addr == ipaddr->s_addr) {
+                memcpy(mac, ArpTable[i].mac, 6);
+                pthread_rwlock_unlock(&ArpTableLock);
+                return 1;
+            }
+        }
+    }
+    pthread_rwlock_unlock(&ArpTableLock);
+    return 0;
+}
+
+int ArpShowTable() {
+    char buf1[80], buf2[80];
+    int i;
+    pthread_rwlock_rdlock(&ArpTableLock);
+    for(i = 0; i < ARP_TABLE_NO; ++i){
+        if(memcmp(ArpTable[i].mac, AllZeroMac, 6) != 0) {
+            printf("(%s) at %s",
+                   inet_ntop(AF_INET, &ArpTable[i].ipaddr, buf1, sizeof(buf1)),
+                   my_ether_ntoa_r(ArpTable[i].mac, buf2));
+        }
+    }
+    pthread_rwlock_unlock(&ArpTableLock);
+    return 0;
+}
+
+int ArpSend(int soc, u_int16_t op,
+            u_int8_t e_smac[6], u_int8_t e_dmac[6],
+            u_int8_t smac[6], u_int8_t dmac[6],
+            u_int8_t saddr[4], u_int8_t daddr[4]) {
+    struct ether_arp arp;
+    memset(&arp, 0, sizeof(struct ether_arp));
+    arp.arp_hrd = htons(ARPHRD_ETHER);
+    arp.arp_pro = htons(ETHERTYPE_IP);
+    arp.arp_hln = 6;
+    arp.arp_pln = 4;
+    arp.arp_op = htons(op);
+
+    memcpy(arp.arp_sha, smac, 6);
+    memcpy(arp.arp_tha, dmac, 6);
+    memcpy(arp.arp_spa, saddr, 4);
+    memcpy(arp.arp_tpa, daddr, 4);
+
+    printf("=== ARP ===[\n");
+    EtherSend(soc, e_smac, e_dmac, ETHERTYPE_ARP, (u_int8_t *)&arp, sizeof(struct ether_arp));
+    print_ether_arp(&arp);
+    printf("]\n");
+
+    return 0;
 }
 
 int ArpRecv(int soc, struct ether_header *eh, u_int8_t *data, int len) {

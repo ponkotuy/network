@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include <net/ethernet.h>
 #include <arpa/inet.h>
 #include "arp.h"
@@ -38,6 +39,40 @@ void print_ether_header(struct ether_header *eh) {
             break;
     }
     return;
+}
+
+int EtherSend(int soc, u_int8_t smac[6], u_int8_t dmac[6], u_int16_t type, u_int8_t *data, int len) {
+    struct ether_header *eh;
+    u_int8_t *ptr, sbuf[sizeof(struct ether_header)+ETHERMTU];
+    int padlen;
+
+    if(ETHERMTU < len) {
+        printf("EtherSend: data too long:%d\n", len);
+        return -1;
+    }
+
+    ptr = sbuf;
+    eh = (struct ether_header *)ptr;
+    memset(eh, 0, sizeof(struct ether_header));
+    memcpy(eh->ether_dhost, dmac, 6);
+    memcpy(eh->ether_shost, smac, 6);
+    eh->ether_type = htons(type);
+    ptr += sizeof(struct ether_header);
+
+    memcpy(ptr, data, len);
+    ptr += len;
+
+    // frame sizeがETH_ZLEN(60)より小さい場合はETH_ZLENまでパディングする
+    if((ptr - sbuf) < ETH_ZLEN) {
+        padlen = ETH_ZLEN - (ptr - sbuf);
+        memset(ptr, 0, padlen);
+        ptr += padlen;
+    }
+
+    write(soc, sbuf, ptr-sbuf);
+    print_ether_header(eh);
+
+    return 0;
 }
 
 int EtherRecv(int soc, u_int_8 *in_ptr, int in_len) {

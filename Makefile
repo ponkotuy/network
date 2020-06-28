@@ -1,5 +1,5 @@
 PROGRAM=network
-OBJS=main.o ether.o arp.o
+OBJS=main.o ether.o arp.o ip.o
 SRCS=$(OBJS:%.o=%.c)
 CFLAGs=-Wall -g
 LDFLAGS=-lpthread
