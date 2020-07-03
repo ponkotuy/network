@@ -1,6 +1,8 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
+#include <time.h>
 #include <net/ethernet.h>
 #include <netinet/ip.h>
 #include "ip.h"
@@ -16,6 +18,29 @@ typedef struct {
 } IP_RECV_BUF;
 
 IP_RECV_BUF IpRecvBuf[IP_RECV_BUF_NO];
+
+int IpRecvBufAdd(u_int16_t id) {
+    int i, freeNo = -1, oldestNo = -1, intoNo;
+    time_t oldestTime = ULONG_MAX;
+    for(i = 0; i < IP_RECV_BUF_NO; ++i) {
+        if(IpRecvBuf[i].id == -1) {
+            freeNo = i;
+        } else {
+            if(IpRecvBuf[i].id == id) return i;
+            if(IpRecvBuf[i].timestamp < oldestTime) {
+                oldestTime = IpRecvBuf[i].timestamp;
+                oldestNo = i;
+            }
+        }
+    }
+
+    intoNo = freeNo == -1 ? oldestNo : freeNo;
+    IpRecvBuf[intoNo].timestamp = time(NULL);
+    IpRecvBuf[intoNo].id = id;
+    IpRecvBuf[intoNo].len = 0;
+
+    return intoNo;
+}
 
 int IpRecv(int soc, u_int8_t *raw, int raw_len, struct ether_header *eh, u_int8_t *data, int len) {
     struct ip *ip;
